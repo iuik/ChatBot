@@ -27,6 +27,7 @@
 - Qdrant
 - OneBot V11
 - DeepSeek Compatible API
+- Docker / Docker Compose
 
 ## 2. 项目结构
 
@@ -183,9 +184,64 @@ chmod +x deploy-linux.sh
 ./deploy-linux.sh --prepare-only
 ```
 
-## 8. 部署产物
+## 8. Docker 部署
 
-脚本会生成：
+仓库现已包含：
+- [Dockerfile](/C:/workSpaceforIDEA/ChatBot/Dockerfile)
+- [docker-compose.yml](/C:/workSpaceforIDEA/ChatBot/docker-compose.yml)
+- [docker/chatbot.env.example](/C:/workSpaceforIDEA/ChatBot/docker/chatbot.env.example)
+
+### 8.1 准备环境变量
+
+复制示例文件并填入真实值：
+
+```bash
+cp docker/chatbot.env.example docker/chatbot.env
+```
+
+然后至少修改：
+- `OWNER_QQ`
+- `ONEBOT_API_BASE_URL`
+- `DEEPSEEK_API_KEY`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_DATA_REDIS_HOST`
+- `SPRING_DATA_REDIS_PORT`
+
+如果启用长期记忆，还需要配置：
+- `EMBEDDING_*`
+- `QDRANT_*`
+
+再把 `docker-compose.yml` 里的环境文件改成你实际使用的文件：
+
+```yaml
+env_file:
+  - ./docker/chatbot.env
+```
+
+### 8.2 构建并启动
+
+```bash
+docker compose up -d --build
+```
+
+### 8.3 停止
+
+```bash
+docker compose down
+```
+
+### 8.4 重要说明
+
+- 容器对外暴露端口 `8090`
+- `./prompts` 会以只读方式挂载到 `/app/prompts`
+- 示例文件默认使用 `host.docker.internal` 访问 OneBot、MySQL、Redis 和 Qdrant
+- 如果你在 Linux 上运行且该地址不可用，请改成宿主机 IP 或容器服务名
+
+## 9. 部署产物
+
+一键部署脚本会生成：
 
 ```text
 .deploy/
@@ -202,7 +258,7 @@ chmod +x deploy-linux.sh
 - 重复执行脚本会覆盖已保存配置
 - 若检测到旧进程，脚本会先停止旧进程再重新部署
 
-## 9. OneBot 消息限制
+## 10. OneBot 消息限制
 
 只有在以下条件全部满足时，消息才会被处理：
 - `post_type=message`
@@ -215,7 +271,7 @@ chmod +x deploy-linux.sh
 - 非文本 CQ 消息
 - 非 owner 用户消息
 
-## 10. 拟人化分段发送
+## 11. 拟人化分段发送
 
 日常聊天回复可以拆成 1 到 3 条 QQ 消息，让私聊体验更自然：
 - 句子更短
@@ -231,16 +287,16 @@ chmod +x deploy-linux.sh
 - ChatPush 消息
 - 含代码块、命令、SQL 或 JSON 风格内容的回复
 
-## 11. 常见问题排查
+## 12. 常见问题排查
 
-### 11.1 OneBot 回调没有到达服务
+### 12.1 OneBot 回调没有到达服务
 
 检查：
 - OneBot 反向 HTTP 目标是否指向 `POST /onebot/event`
 - 防火墙和端口暴露是否正确
 - `OWNER_QQ` 是否填写正确
 
-### 11.2 收到消息但没有发出回复
+### 12.2 收到消息但没有发出回复
 
 检查：
 - 消息是否为私聊纯文本
@@ -248,27 +304,36 @@ chmod +x deploy-linux.sh
 - `ONEBOT_ACCESS_TOKEN` 是否匹配
 - 配置的聊天模型接口和 API Key 是否有效
 
-### 11.3 启动时报数据库或 Redis 错误
+### 12.3 启动时报数据库或 Redis 错误
 
 检查：
 - MySQL 和 Redis 是否运行中
 - 主机、端口、用户名、密码是否正确
 - 网络连通性是否正常
 
-## 12. 安全说明
+### 12.4 Docker 容器启动后无法访问宿主机服务
+
+检查：
+- `ONEBOT_API_BASE_URL`、MySQL、Redis、Qdrant 地址是否能从容器内访问
+- Linux 下若 `host.docker.internal` 不可用，请改成宿主机 IP 或服务名
+- 目标服务在需要时应监听非回环地址
+
+## 13. 安全说明
 
 - 不要提交真实 API Key 或数据库密码
-- 不要提交 `.deploy/` 目录
+- 不要提交 `.deploy/` 或真实 Docker 环境变量文件
 - 不要在日志中输出完整 token 或 API Key
 - 生产环境请使用独立运行账号与最小权限数据库凭据
 
-## 13. 建议验证步骤
+## 14. 建议验证步骤
 
 ```bash
 mvn -s .mvn/settings.xml test
 mvn -s .mvn/settings.xml clean package
+docker compose config
 ```
 
 如果你想最快搭好可运行环境，可以直接使用：
 - `deploy-windows.ps1`
 - `deploy-linux.sh`
+- `docker compose up -d --build`

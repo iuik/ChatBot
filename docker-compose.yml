@@ -1,0 +1,14 @@
+services:
+  chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chatbot:latest
+    container_name: chatbot
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    env_file:
+      - ./docker/chatbot.env
+    volumes:
+      - ./prompts:/app/prompts:ro

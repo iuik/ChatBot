@@ -1,4 +1,4 @@
-﻿# ChatBot
+# ChatBot
 
 A lightweight Spring Boot backend for QQ private-chat AI interactions.
 
@@ -10,7 +10,7 @@ The current project includes:
 - Qdrant long-term memory
 - Prompt Profile + TimeContext
 - Reminder / ChatPush
-- Human-like Response Delivery for daily chat splitting
+- Human-like response delivery for daily chat splitting
 
 The scope is intentionally narrow:
 - Private text messages only
@@ -27,22 +27,23 @@ The scope is intentionally narrow:
 - Qdrant
 - OneBot V11
 - DeepSeek Compatible API
+- Docker / Docker Compose
 
 ## 2. Project Structure
 
 ```text
 src/main/java/com/chatbot
-鈹溾攢 chat          Private chat flow, queueing, processing
-鈹溾攢 chatpush      Proactive topic pushing
-鈹溾攢 config        Configuration binding
-鈹溾攢 deepseek      LLM chat integration
-鈹溾攢 delivery      Reply splitting and paced delivery
-鈹溾攢 memory        Redis / Qdrant memory logic
-鈹溾攢 onebot        OneBot ingress and outbound client
-鈹溾攢 proactive     Reminders and proactive messages
-鈹溾攢 prompt        Persona / Prompt / TimeContext
-鈹溾攢 repository    MySQL persistence
-鈹斺攢 security      Owner validation
+|- chat          Private chat flow, queueing, processing
+|- chatpush      Proactive topic pushing
+|- config        Configuration binding
+|- deepseek      LLM chat integration
+|- delivery      Reply splitting and paced delivery
+|- memory        Redis / Qdrant memory logic
+|- onebot        OneBot ingress and outbound client
+|- proactive     Reminders and proactive messages
+|- prompt        Persona / Prompt / TimeContext
+|- repository    MySQL persistence
+\- security      Owner validation
 ```
 
 ## 3. Prerequisites
@@ -183,18 +184,73 @@ Prepare configuration only:
 ./deploy-linux.sh --prepare-only
 ```
 
-## 8. Deployment Artifacts
+## 8. Docker Deployment
 
-The scripts generate:
+The repository now includes:
+- [Dockerfile](/C:/workSpaceforIDEA/ChatBot/Dockerfile)
+- [docker-compose.yml](/C:/workSpaceforIDEA/ChatBot/docker-compose.yml)
+- [docker/chatbot.env.example](/C:/workSpaceforIDEA/ChatBot/docker/chatbot.env.example)
+
+### 8.1 Prepare Environment Variables
+
+Copy the example file and fill in real values:
+
+```bash
+cp docker/chatbot.env.example docker/chatbot.env
+```
+
+Then edit:
+- `OWNER_QQ`
+- `ONEBOT_API_BASE_URL`
+- `DEEPSEEK_API_KEY`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_DATA_REDIS_HOST`
+- `SPRING_DATA_REDIS_PORT`
+
+If you use long-term memory, also configure:
+- `EMBEDDING_*`
+- `QDRANT_*`
+
+Update `docker-compose.yml` to use your actual env file:
+
+```yaml
+env_file:
+  - ./docker/chatbot.env
+```
+
+### 8.2 Build and Start
+
+```bash
+docker compose up -d --build
+```
+
+### 8.3 Stop
+
+```bash
+docker compose down
+```
+
+### 8.4 Important Notes
+
+- The container exposes port `8090`
+- `./prompts` is mounted read-only into `/app/prompts`
+- The sample file uses `host.docker.internal` for OneBot, MySQL, Redis, and Qdrant
+- On Linux, if `host.docker.internal` is unavailable, replace it with your host IP or service name
+
+## 9. Deployment Artifacts
+
+The one-click scripts generate:
 
 ```text
 .deploy/
-鈹溾攢 chatbot.env           Linux environment file
-鈹溾攢 chatbot-env.ps1       Windows environment script
-鈹溾攢 chatbot.pid           Process PID
-鈹斺攢 logs/
-   鈹溾攢 chatbot.out.log
-   鈹斺攢 chatbot.err.log
+|- chatbot.env           Linux environment file
+|- chatbot-env.ps1       Windows environment script
+|- chatbot.pid           Process PID
+\- logs/
+   |- chatbot.out.log
+   \- chatbot.err.log
 ```
 
 Notes:
@@ -202,7 +258,7 @@ Notes:
 - Re-running a script overwrites the saved config
 - If an old process is detected, the scripts stop it before redeploying
 
-## 9. OneBot Message Constraints
+## 10. OneBot Message Constraints
 
 Messages are processed only when all of the following are true:
 - `post_type=message`
@@ -215,7 +271,7 @@ The service ignores:
 - Non-text CQ messages
 - Messages from non-owner users
 
-## 10. Human-like Split Delivery
+## 11. Human-like Split Delivery
 
 Daily chat replies can be split into 1 to 3 QQ messages to feel more natural:
 - Shorter sentences
@@ -231,16 +287,16 @@ By default, the following are not split:
 - ChatPush messages
 - Replies containing code blocks, commands, SQL, or JSON-like content
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
-### 11.1 OneBot callback not reaching the service
+### 12.1 OneBot callback not reaching the service
 
 Check:
 - The OneBot reverse HTTP target points to `POST /onebot/event`
 - Firewall and port exposure are correct
 - `OWNER_QQ` is correct
 
-### 11.2 Messages arrive but no reply is sent
+### 12.2 Messages arrive but no reply is sent
 
 Check:
 - The message is a private plain-text message
@@ -248,28 +304,36 @@ Check:
 - `ONEBOT_ACCESS_TOKEN` matches
 - The configured chat model endpoint and API key are valid
 
-### 11.3 Startup fails with database or Redis errors
+### 12.3 Startup fails with database or Redis errors
 
 Check:
 - MySQL and Redis are running
 - Host, port, username, and password are correct
 - The network path is reachable
 
-## 12. Security Notes
+### 12.4 Docker container starts but cannot reach host services
+
+Check:
+- `ONEBOT_API_BASE_URL`, MySQL, Redis, and Qdrant hosts are reachable from inside the container
+- On Linux, replace `host.docker.internal` if needed
+- The target services are listening on non-loopback addresses when required
+
+## 13. Security Notes
 
 - Do not commit real API keys or database passwords
-- Do not commit the `.deploy/` directory
+- Do not commit `.deploy/` or real Docker env files
 - Do not log full tokens or API keys
 - Use separate runtime accounts and least-privilege database credentials in production
 
-## 13. Recommended Verification
+## 14. Recommended Verification
 
 ```bash
 mvn -s .mvn/settings.xml test
 mvn -s .mvn/settings.xml clean package
+docker compose config
 ```
 
 If you want the fastest path to a runnable environment, use:
 - `deploy-windows.ps1`
 - `deploy-linux.sh`
-
+- `docker compose up -d --build`

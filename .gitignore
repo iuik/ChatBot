@@ -13,6 +13,7 @@
 application-local.yml
 prompts/persona.local.md
 prompts/private/
+docker/chatbot.env
 
 # Maven wrapper output
 .mvn/wrapper/maven-wrapper.jar
