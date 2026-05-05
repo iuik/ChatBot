@@ -14,6 +14,6 @@ services:
       - ./docker/chatbot.env
     volumes:
       - ./prompts:/app/prompts:ro
-  networks:
+networks:
   academy-network:
     external: true
