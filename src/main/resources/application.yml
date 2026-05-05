@@ -1,0 +1,104 @@
+server:
+  port: 8090
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/chatbot?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      # Redis logical database index, default 0
+      database: ${SPRING_DATA_REDIS_DATABASE:0}
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:always}
+
+bot:
+  owner-qq: ${OWNER_QQ:}
+  timezone: ${BOT_TIMEZONE:Asia/Shanghai}
+  onebot:
+    api-base-url: ${ONEBOT_API_BASE_URL:http://127.0.0.1:3000}
+    access-token: ${ONEBOT_ACCESS_TOKEN:}
+  chat:
+    timeout-seconds: ${BOT_CHAT_TIMEOUT_SECONDS:20}
+    max-reply-tokens: ${BOT_CHAT_MAX_REPLY_TOKENS:500}
+    max-context-messages: ${BOT_CHAT_MAX_CONTEXT_MESSAGES:20}
+    queue:
+      debounce-millis: ${BOT_CHAT_QUEUE_DEBOUNCE_MILLIS:1200}
+      processing-lock-seconds: ${BOT_CHAT_PROCESSING_LOCK_SECONDS:120}
+      max-batch-size: ${BOT_CHAT_QUEUE_MAX_BATCH_SIZE:8}
+      max-merged-message-chars: ${BOT_CHAT_QUEUE_MAX_MERGED_MESSAGE_CHARS:4000}
+  memory:
+    auto-extract-enabled: ${BOT_MEMORY_AUTO_EXTRACT_ENABLED:false}
+  proactive:
+    enabled: ${BOT_PROACTIVE_ENABLED:true}
+    scan-interval-millis: ${BOT_PROACTIVE_SCAN_INTERVAL_MILLIS:30000}
+    quiet-hours-start: ${BOT_PROACTIVE_QUIET_HOURS_START:23:30}
+    quiet-hours-end: ${BOT_PROACTIVE_QUIET_HOURS_END:08:30}
+    max-per-day: ${BOT_PROACTIVE_MAX_PER_DAY:3}
+    timezone: ${BOT_PROACTIVE_TIMEZONE:${BOT_TIMEZONE:Asia/Shanghai}}
+    defer-minutes-when-quiet: ${BOT_PROACTIVE_DEFER_MINUTES_WHEN_QUIET:30}
+  reminder:
+    natural-language-enabled: ${BOT_REMINDER_NL_ENABLED:true}
+    ai-intent-enabled: ${BOT_REMINDER_AI_INTENT_ENABLED:true}
+    ai-reply-enabled: ${BOT_REMINDER_AI_REPLY_ENABLED:true}
+    max-candidates: ${BOT_REMINDER_MAX_CANDIDATES:5}
+  chatpush:
+    enabled: ${BOT_CHATPUSH_ENABLED:false}
+    scan-interval-millis: ${BOT_CHATPUSH_SCAN_INTERVAL_MILLIS:600000}
+    min-idle-hours: ${BOT_CHATPUSH_MIN_IDLE_HOURS:6}
+    cooldown-hours: ${BOT_CHATPUSH_COOLDOWN_HOURS:6}
+    max-per-day: ${BOT_CHATPUSH_MAX_PER_DAY:2}
+    quiet-hours-start: ${BOT_CHATPUSH_QUIET_HOURS_START:23:30}
+    quiet-hours-end: ${BOT_CHATPUSH_QUIET_HOURS_END:08:30}
+    timezone: ${BOT_CHATPUSH_TIMEZONE:${BOT_TIMEZONE:Asia/Shanghai}}
+    max-message-length: ${BOT_CHATPUSH_MAX_MESSAGE_LENGTH:120}
+    use-ai-generator: ${BOT_CHATPUSH_USE_AI_GENERATOR:true}
+    min-allowed-idle-minutes: ${BOT_CHATPUSH_MIN_ALLOWED_IDLE_MINUTES:10}
+    min-allowed-cooldown-minutes: ${BOT_CHATPUSH_MIN_ALLOWED_COOLDOWN_MINUTES:10}
+    max-allowed-per-day: ${BOT_CHATPUSH_MAX_ALLOWED_PER_DAY:10}
+  prompt:
+    profile-file: ${BOT_PROMPT_PROFILE_FILE:}
+    profile-text: ${BOT_PROMPT_PROFILE_TEXT:}
+    profile-source-priority: ${BOT_PROMPT_PROFILE_SOURCE_PRIORITY:file-first}
+    reload-file-each-request: ${BOT_PROMPT_RELOAD_FILE_EACH_REQUEST:false}
+    max-profile-chars: ${BOT_PROMPT_MAX_PROFILE_CHARS:8000}
+    include-time-context: ${BOT_PROMPT_INCLUDE_TIME_CONTEXT:true}
+  delivery:
+    split-enabled: ${BOT_DELIVERY_SPLIT_ENABLED:true}
+    max-parts: ${BOT_DELIVERY_MAX_PARTS:3}
+    max-part-chars: ${BOT_DELIVERY_MAX_PART_CHARS:80}
+    min-delay-millis: ${BOT_DELIVERY_MIN_DELAY_MILLIS:700}
+    max-delay-millis: ${BOT_DELIVERY_MAX_DELAY_MILLIS:1800}
+    split-daily-chat-only: ${BOT_DELIVERY_SPLIT_DAILY_CHAT_ONLY:true}
+
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+  model: ${DEEPSEEK_MODEL:deepseek-chat}
+
+embedding:
+  enabled: ${EMBEDDING_ENABLED:true}
+  base-url: ${EMBEDDING_BASE_URL:}
+  api-key: ${EMBEDDING_API_KEY:}
+  model: ${EMBEDDING_MODEL:}
+  dimension: ${EMBEDDING_DIMENSION:1024}
+  timeout-seconds: ${EMBEDDING_TIMEOUT_SECONDS:15}
+
+qdrant:
+  enabled: ${QDRANT_ENABLED:true}
+  host: ${QDRANT_HOST:127.0.0.1}
+  port: ${QDRANT_PORT:6334}
+  collection: ${QDRANT_COLLECTION:qq_bot_memory}
+  api-key: ${QDRANT_API_KEY:}
+  vector-size: ${QDRANT_VECTOR_SIZE:${EMBEDDING_DIMENSION:1024}}
+
+logging:
+  level:
+    root: INFO

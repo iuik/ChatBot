@@ -1,0 +1,412 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PREPARE_ONLY="false"
+if [[ "${1:-}" == "--prepare-only" ]]; then
+  PREPARE_ONLY="true"
+fi
+
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$PROJECT_ROOT"
+
+DEPLOY_DIR="$PROJECT_ROOT/.deploy"
+LOG_DIR="$DEPLOY_DIR/logs"
+ENV_FILE="$DEPLOY_DIR/chatbot.env"
+PID_FILE="$DEPLOY_DIR/chatbot.pid"
+
+mkdir -p "$DEPLOY_DIR" "$LOG_DIR"
+
+read_config_value() {
+  local name="$1"
+  local prompt="$2"
+  local default_value="${3:-}"
+  local required="${4:-false}"
+  local value=""
+
+  while true; do
+    if [[ -n "$default_value" ]]; then
+      read -r -p "$prompt [$default_value]: " value
+    else
+      read -r -p "$prompt: " value
+    fi
+
+    if [[ -z "$value" ]]; then
+      value="$default_value"
+    fi
+
+    if [[ "$required" == "true" && -z "$value" ]]; then
+      echo "$name is required."
+      continue
+    fi
+
+    printf '%s' "$value"
+    return 0
+  done
+}
+
+CONFIG_KEYS=(
+  SERVER_PORT
+  OWNER_QQ
+  ONEBOT_API_BASE_URL
+  ONEBOT_ACCESS_TOKEN
+  DEEPSEEK_API_KEY
+  DEEPSEEK_BASE_URL
+  DEEPSEEK_MODEL
+  SPRING_DATASOURCE_URL
+  SPRING_DATASOURCE_USERNAME
+  SPRING_DATASOURCE_PASSWORD
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME
+  SPRING_DATA_REDIS_HOST
+  SPRING_DATA_REDIS_PORT
+  SPRING_DATA_REDIS_USERNAME
+  SPRING_DATA_REDIS_PASSWORD
+  SPRING_DATA_REDIS_DATABASE
+  SPRING_SQL_INIT_MODE
+  BOT_TIMEZONE
+  BOT_CHAT_TIMEOUT_SECONDS
+  BOT_CHAT_MAX_REPLY_TOKENS
+  BOT_CHAT_MAX_CONTEXT_MESSAGES
+  BOT_CHAT_QUEUE_DEBOUNCE_MILLIS
+  BOT_CHAT_PROCESSING_LOCK_SECONDS
+  BOT_CHAT_QUEUE_MAX_BATCH_SIZE
+  BOT_CHAT_QUEUE_MAX_MERGED_MESSAGE_CHARS
+  BOT_MEMORY_AUTO_EXTRACT_ENABLED
+  BOT_PROACTIVE_ENABLED
+  BOT_PROACTIVE_SCAN_INTERVAL_MILLIS
+  BOT_PROACTIVE_QUIET_HOURS_START
+  BOT_PROACTIVE_QUIET_HOURS_END
+  BOT_PROACTIVE_MAX_PER_DAY
+  BOT_PROACTIVE_TIMEZONE
+  BOT_PROACTIVE_DEFER_MINUTES_WHEN_QUIET
+  BOT_REMINDER_NL_ENABLED
+  BOT_REMINDER_AI_INTENT_ENABLED
+  BOT_REMINDER_AI_REPLY_ENABLED
+  BOT_REMINDER_MAX_CANDIDATES
+  BOT_CHATPUSH_ENABLED
+  BOT_CHATPUSH_SCAN_INTERVAL_MILLIS
+  BOT_CHATPUSH_MIN_IDLE_HOURS
+  BOT_CHATPUSH_COOLDOWN_HOURS
+  BOT_CHATPUSH_MAX_PER_DAY
+  BOT_CHATPUSH_QUIET_HOURS_START
+  BOT_CHATPUSH_QUIET_HOURS_END
+  BOT_CHATPUSH_TIMEZONE
+  BOT_CHATPUSH_MAX_MESSAGE_LENGTH
+  BOT_CHATPUSH_USE_AI_GENERATOR
+  BOT_CHATPUSH_MIN_ALLOWED_IDLE_MINUTES
+  BOT_CHATPUSH_MIN_ALLOWED_COOLDOWN_MINUTES
+  BOT_CHATPUSH_MAX_ALLOWED_PER_DAY
+  BOT_PROMPT_PROFILE_FILE
+  BOT_PROMPT_PROFILE_TEXT
+  BOT_PROMPT_PROFILE_SOURCE_PRIORITY
+  BOT_PROMPT_RELOAD_FILE_EACH_REQUEST
+  BOT_PROMPT_MAX_PROFILE_CHARS
+  BOT_PROMPT_INCLUDE_TIME_CONTEXT
+  BOT_DELIVERY_SPLIT_ENABLED
+  BOT_DELIVERY_MAX_PARTS
+  BOT_DELIVERY_MAX_PART_CHARS
+  BOT_DELIVERY_MIN_DELAY_MILLIS
+  BOT_DELIVERY_MAX_DELAY_MILLIS
+  BOT_DELIVERY_SPLIT_DAILY_CHAT_ONLY
+  EMBEDDING_ENABLED
+  EMBEDDING_BASE_URL
+  EMBEDDING_API_KEY
+  EMBEDDING_MODEL
+  EMBEDDING_DIMENSION
+  EMBEDDING_TIMEOUT_SECONDS
+  QDRANT_ENABLED
+  QDRANT_HOST
+  QDRANT_PORT
+  QDRANT_COLLECTION
+  QDRANT_API_KEY
+  QDRANT_VECTOR_SIZE
+)
+
+declare -A CONFIG_DEFAULTS=(
+  [SERVER_PORT]="8090"
+  [OWNER_QQ]=""
+  [ONEBOT_API_BASE_URL]="http://127.0.0.1:3000"
+  [ONEBOT_ACCESS_TOKEN]=""
+  [DEEPSEEK_API_KEY]=""
+  [DEEPSEEK_BASE_URL]="https://api.deepseek.com"
+  [DEEPSEEK_MODEL]="deepseek-chat"
+  [SPRING_DATASOURCE_URL]="jdbc:mysql://127.0.0.1:3306/chatbot?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8"
+  [SPRING_DATASOURCE_USERNAME]="root"
+  [SPRING_DATASOURCE_PASSWORD]=""
+  [SPRING_DATASOURCE_DRIVER_CLASS_NAME]="com.mysql.cj.jdbc.Driver"
+  [SPRING_DATA_REDIS_HOST]="127.0.0.1"
+  [SPRING_DATA_REDIS_PORT]="6379"
+  [SPRING_DATA_REDIS_USERNAME]=""
+  [SPRING_DATA_REDIS_PASSWORD]=""
+  [SPRING_DATA_REDIS_DATABASE]="0"
+  [SPRING_SQL_INIT_MODE]="always"
+  [BOT_TIMEZONE]="Asia/Shanghai"
+  [BOT_CHAT_TIMEOUT_SECONDS]="20"
+  [BOT_CHAT_MAX_REPLY_TOKENS]="500"
+  [BOT_CHAT_MAX_CONTEXT_MESSAGES]="20"
+  [BOT_CHAT_QUEUE_DEBOUNCE_MILLIS]="1200"
+  [BOT_CHAT_PROCESSING_LOCK_SECONDS]="120"
+  [BOT_CHAT_QUEUE_MAX_BATCH_SIZE]="8"
+  [BOT_CHAT_QUEUE_MAX_MERGED_MESSAGE_CHARS]="4000"
+  [BOT_MEMORY_AUTO_EXTRACT_ENABLED]="false"
+  [BOT_PROACTIVE_ENABLED]="true"
+  [BOT_PROACTIVE_SCAN_INTERVAL_MILLIS]="30000"
+  [BOT_PROACTIVE_QUIET_HOURS_START]="23:30"
+  [BOT_PROACTIVE_QUIET_HOURS_END]="08:30"
+  [BOT_PROACTIVE_MAX_PER_DAY]="3"
+  [BOT_PROACTIVE_TIMEZONE]="Asia/Shanghai"
+  [BOT_PROACTIVE_DEFER_MINUTES_WHEN_QUIET]="30"
+  [BOT_REMINDER_NL_ENABLED]="true"
+  [BOT_REMINDER_AI_INTENT_ENABLED]="true"
+  [BOT_REMINDER_AI_REPLY_ENABLED]="true"
+  [BOT_REMINDER_MAX_CANDIDATES]="5"
+  [BOT_CHATPUSH_ENABLED]="false"
+  [BOT_CHATPUSH_SCAN_INTERVAL_MILLIS]="600000"
+  [BOT_CHATPUSH_MIN_IDLE_HOURS]="6"
+  [BOT_CHATPUSH_COOLDOWN_HOURS]="6"
+  [BOT_CHATPUSH_MAX_PER_DAY]="2"
+  [BOT_CHATPUSH_QUIET_HOURS_START]="23:30"
+  [BOT_CHATPUSH_QUIET_HOURS_END]="08:30"
+  [BOT_CHATPUSH_TIMEZONE]="Asia/Shanghai"
+  [BOT_CHATPUSH_MAX_MESSAGE_LENGTH]="120"
+  [BOT_CHATPUSH_USE_AI_GENERATOR]="true"
+  [BOT_CHATPUSH_MIN_ALLOWED_IDLE_MINUTES]="10"
+  [BOT_CHATPUSH_MIN_ALLOWED_COOLDOWN_MINUTES]="10"
+  [BOT_CHATPUSH_MAX_ALLOWED_PER_DAY]="10"
+  [BOT_PROMPT_PROFILE_FILE]=""
+  [BOT_PROMPT_PROFILE_TEXT]=""
+  [BOT_PROMPT_PROFILE_SOURCE_PRIORITY]="file-first"
+  [BOT_PROMPT_RELOAD_FILE_EACH_REQUEST]="false"
+  [BOT_PROMPT_MAX_PROFILE_CHARS]="8000"
+  [BOT_PROMPT_INCLUDE_TIME_CONTEXT]="true"
+  [BOT_DELIVERY_SPLIT_ENABLED]="true"
+  [BOT_DELIVERY_MAX_PARTS]="3"
+  [BOT_DELIVERY_MAX_PART_CHARS]="80"
+  [BOT_DELIVERY_MIN_DELAY_MILLIS]="700"
+  [BOT_DELIVERY_MAX_DELAY_MILLIS]="1800"
+  [BOT_DELIVERY_SPLIT_DAILY_CHAT_ONLY]="true"
+  [EMBEDDING_ENABLED]="true"
+  [EMBEDDING_BASE_URL]=""
+  [EMBEDDING_API_KEY]=""
+  [EMBEDDING_MODEL]=""
+  [EMBEDDING_DIMENSION]="1024"
+  [EMBEDDING_TIMEOUT_SECONDS]="15"
+  [QDRANT_ENABLED]="true"
+  [QDRANT_HOST]="127.0.0.1"
+  [QDRANT_PORT]="6334"
+  [QDRANT_COLLECTION]="qq_bot_memory"
+  [QDRANT_API_KEY]=""
+  [QDRANT_VECTOR_SIZE]="1024"
+)
+
+declare -A CONFIG_PROMPTS=(
+  [SERVER_PORT]="HTTP port"
+  [OWNER_QQ]="Owner QQ"
+  [ONEBOT_API_BASE_URL]="OneBot API base URL"
+  [ONEBOT_ACCESS_TOKEN]="OneBot access token"
+  [DEEPSEEK_API_KEY]="DeepSeek API key"
+  [DEEPSEEK_BASE_URL]="DeepSeek base URL"
+  [DEEPSEEK_MODEL]="DeepSeek model"
+  [SPRING_DATASOURCE_URL]="MySQL JDBC URL"
+  [SPRING_DATASOURCE_USERNAME]="MySQL username"
+  [SPRING_DATASOURCE_PASSWORD]="MySQL password"
+  [SPRING_DATASOURCE_DRIVER_CLASS_NAME]="JDBC driver class"
+  [SPRING_DATA_REDIS_HOST]="Redis host"
+  [SPRING_DATA_REDIS_PORT]="Redis port"
+  [SPRING_DATA_REDIS_USERNAME]="Redis username"
+  [SPRING_DATA_REDIS_PASSWORD]="Redis password"
+  [SPRING_DATA_REDIS_DATABASE]="Redis database index"
+  [SPRING_SQL_INIT_MODE]="Spring SQL init mode"
+  [BOT_TIMEZONE]="Bot timezone"
+  [BOT_CHAT_TIMEOUT_SECONDS]="Chat timeout seconds"
+  [BOT_CHAT_MAX_REPLY_TOKENS]="Chat max reply tokens"
+  [BOT_CHAT_MAX_CONTEXT_MESSAGES]="Chat max context messages"
+  [BOT_CHAT_QUEUE_DEBOUNCE_MILLIS]="Queue debounce millis"
+  [BOT_CHAT_PROCESSING_LOCK_SECONDS]="Queue processing lock seconds"
+  [BOT_CHAT_QUEUE_MAX_BATCH_SIZE]="Queue max batch size"
+  [BOT_CHAT_QUEUE_MAX_MERGED_MESSAGE_CHARS]="Queue max merged chars"
+  [BOT_MEMORY_AUTO_EXTRACT_ENABLED]="Enable auto memory extract (true/false)"
+  [BOT_PROACTIVE_ENABLED]="Enable proactive reminders (true/false)"
+  [BOT_PROACTIVE_SCAN_INTERVAL_MILLIS]="Proactive scan interval millis"
+  [BOT_PROACTIVE_QUIET_HOURS_START]="Proactive quiet start"
+  [BOT_PROACTIVE_QUIET_HOURS_END]="Proactive quiet end"
+  [BOT_PROACTIVE_MAX_PER_DAY]="Proactive max per day"
+  [BOT_PROACTIVE_TIMEZONE]="Proactive timezone"
+  [BOT_PROACTIVE_DEFER_MINUTES_WHEN_QUIET]="Proactive defer minutes when quiet"
+  [BOT_REMINDER_NL_ENABLED]="Enable natural reminder parsing (true/false)"
+  [BOT_REMINDER_AI_INTENT_ENABLED]="Enable reminder AI intent (true/false)"
+  [BOT_REMINDER_AI_REPLY_ENABLED]="Enable reminder AI reply (true/false)"
+  [BOT_REMINDER_MAX_CANDIDATES]="Reminder max candidates"
+  [BOT_CHATPUSH_ENABLED]="Enable ChatPush (true/false)"
+  [BOT_CHATPUSH_SCAN_INTERVAL_MILLIS]="ChatPush scan interval millis"
+  [BOT_CHATPUSH_MIN_IDLE_HOURS]="ChatPush min idle hours"
+  [BOT_CHATPUSH_COOLDOWN_HOURS]="ChatPush cooldown hours"
+  [BOT_CHATPUSH_MAX_PER_DAY]="ChatPush max per day"
+  [BOT_CHATPUSH_QUIET_HOURS_START]="ChatPush quiet start"
+  [BOT_CHATPUSH_QUIET_HOURS_END]="ChatPush quiet end"
+  [BOT_CHATPUSH_TIMEZONE]="ChatPush timezone"
+  [BOT_CHATPUSH_MAX_MESSAGE_LENGTH]="ChatPush max message length"
+  [BOT_CHATPUSH_USE_AI_GENERATOR]="ChatPush use AI generator (true/false)"
+  [BOT_CHATPUSH_MIN_ALLOWED_IDLE_MINUTES]="ChatPush min allowed idle minutes"
+  [BOT_CHATPUSH_MIN_ALLOWED_COOLDOWN_MINUTES]="ChatPush min allowed cooldown minutes"
+  [BOT_CHATPUSH_MAX_ALLOWED_PER_DAY]="ChatPush max allowed per day"
+  [BOT_PROMPT_PROFILE_FILE]="Prompt profile file path"
+  [BOT_PROMPT_PROFILE_TEXT]="Prompt profile text"
+  [BOT_PROMPT_PROFILE_SOURCE_PRIORITY]="Prompt source priority"
+  [BOT_PROMPT_RELOAD_FILE_EACH_REQUEST]="Reload prompt file each request (true/false)"
+  [BOT_PROMPT_MAX_PROFILE_CHARS]="Prompt max profile chars"
+  [BOT_PROMPT_INCLUDE_TIME_CONTEXT]="Include time context (true/false)"
+  [BOT_DELIVERY_SPLIT_ENABLED]="Enable response split delivery (true/false)"
+  [BOT_DELIVERY_MAX_PARTS]="Delivery max parts"
+  [BOT_DELIVERY_MAX_PART_CHARS]="Delivery max chars per part"
+  [BOT_DELIVERY_MIN_DELAY_MILLIS]="Delivery min delay millis"
+  [BOT_DELIVERY_MAX_DELAY_MILLIS]="Delivery max delay millis"
+  [BOT_DELIVERY_SPLIT_DAILY_CHAT_ONLY]="Split only daily chat (true/false)"
+  [EMBEDDING_ENABLED]="Enable embedding (true/false)"
+  [EMBEDDING_BASE_URL]="Embedding base URL"
+  [EMBEDDING_API_KEY]="Embedding API key"
+  [EMBEDDING_MODEL]="Embedding model"
+  [EMBEDDING_DIMENSION]="Embedding dimension"
+  [EMBEDDING_TIMEOUT_SECONDS]="Embedding timeout seconds"
+  [QDRANT_ENABLED]="Enable Qdrant (true/false)"
+  [QDRANT_HOST]="Qdrant host"
+  [QDRANT_PORT]="Qdrant port"
+  [QDRANT_COLLECTION]="Qdrant collection"
+  [QDRANT_API_KEY]="Qdrant API key"
+  [QDRANT_VECTOR_SIZE]="Qdrant vector size"
+)
+
+declare -A CONFIG_REQUIRED=(
+  [SERVER_PORT]="true"
+  [OWNER_QQ]="true"
+  [ONEBOT_API_BASE_URL]="true"
+  [ONEBOT_ACCESS_TOKEN]="false"
+  [DEEPSEEK_API_KEY]="true"
+  [DEEPSEEK_BASE_URL]="true"
+  [DEEPSEEK_MODEL]="true"
+  [SPRING_DATASOURCE_URL]="true"
+  [SPRING_DATASOURCE_USERNAME]="true"
+  [SPRING_DATASOURCE_PASSWORD]="true"
+  [SPRING_DATASOURCE_DRIVER_CLASS_NAME]="true"
+  [SPRING_DATA_REDIS_HOST]="true"
+  [SPRING_DATA_REDIS_PORT]="true"
+  [SPRING_DATA_REDIS_USERNAME]="false"
+  [SPRING_DATA_REDIS_PASSWORD]="false"
+  [SPRING_DATA_REDIS_DATABASE]="true"
+  [SPRING_SQL_INIT_MODE]="true"
+  [BOT_TIMEZONE]="true"
+  [BOT_CHAT_TIMEOUT_SECONDS]="true"
+  [BOT_CHAT_MAX_REPLY_TOKENS]="true"
+  [BOT_CHAT_MAX_CONTEXT_MESSAGES]="true"
+  [BOT_CHAT_QUEUE_DEBOUNCE_MILLIS]="true"
+  [BOT_CHAT_PROCESSING_LOCK_SECONDS]="true"
+  [BOT_CHAT_QUEUE_MAX_BATCH_SIZE]="true"
+  [BOT_CHAT_QUEUE_MAX_MERGED_MESSAGE_CHARS]="true"
+  [BOT_MEMORY_AUTO_EXTRACT_ENABLED]="true"
+  [BOT_PROACTIVE_ENABLED]="true"
+  [BOT_PROACTIVE_SCAN_INTERVAL_MILLIS]="true"
+  [BOT_PROACTIVE_QUIET_HOURS_START]="true"
+  [BOT_PROACTIVE_QUIET_HOURS_END]="true"
+  [BOT_PROACTIVE_MAX_PER_DAY]="true"
+  [BOT_PROACTIVE_TIMEZONE]="true"
+  [BOT_PROACTIVE_DEFER_MINUTES_WHEN_QUIET]="true"
+  [BOT_REMINDER_NL_ENABLED]="true"
+  [BOT_REMINDER_AI_INTENT_ENABLED]="true"
+  [BOT_REMINDER_AI_REPLY_ENABLED]="true"
+  [BOT_REMINDER_MAX_CANDIDATES]="true"
+  [BOT_CHATPUSH_ENABLED]="true"
+  [BOT_CHATPUSH_SCAN_INTERVAL_MILLIS]="true"
+  [BOT_CHATPUSH_MIN_IDLE_HOURS]="true"
+  [BOT_CHATPUSH_COOLDOWN_HOURS]="true"
+  [BOT_CHATPUSH_MAX_PER_DAY]="true"
+  [BOT_CHATPUSH_QUIET_HOURS_START]="true"
+  [BOT_CHATPUSH_QUIET_HOURS_END]="true"
+  [BOT_CHATPUSH_TIMEZONE]="true"
+  [BOT_CHATPUSH_MAX_MESSAGE_LENGTH]="true"
+  [BOT_CHATPUSH_USE_AI_GENERATOR]="true"
+  [BOT_CHATPUSH_MIN_ALLOWED_IDLE_MINUTES]="true"
+  [BOT_CHATPUSH_MIN_ALLOWED_COOLDOWN_MINUTES]="true"
+  [BOT_CHATPUSH_MAX_ALLOWED_PER_DAY]="true"
+  [BOT_PROMPT_PROFILE_FILE]="false"
+  [BOT_PROMPT_PROFILE_TEXT]="false"
+  [BOT_PROMPT_PROFILE_SOURCE_PRIORITY]="true"
+  [BOT_PROMPT_RELOAD_FILE_EACH_REQUEST]="true"
+  [BOT_PROMPT_MAX_PROFILE_CHARS]="true"
+  [BOT_PROMPT_INCLUDE_TIME_CONTEXT]="true"
+  [BOT_DELIVERY_SPLIT_ENABLED]="true"
+  [BOT_DELIVERY_MAX_PARTS]="true"
+  [BOT_DELIVERY_MAX_PART_CHARS]="true"
+  [BOT_DELIVERY_MIN_DELAY_MILLIS]="true"
+  [BOT_DELIVERY_MAX_DELAY_MILLIS]="true"
+  [BOT_DELIVERY_SPLIT_DAILY_CHAT_ONLY]="true"
+  [EMBEDDING_ENABLED]="true"
+  [EMBEDDING_BASE_URL]="false"
+  [EMBEDDING_API_KEY]="false"
+  [EMBEDDING_MODEL]="false"
+  [EMBEDDING_DIMENSION]="true"
+  [EMBEDDING_TIMEOUT_SECONDS]="true"
+  [QDRANT_ENABLED]="true"
+  [QDRANT_HOST]="true"
+  [QDRANT_PORT]="true"
+  [QDRANT_COLLECTION]="true"
+  [QDRANT_API_KEY]="false"
+  [QDRANT_VECTOR_SIZE]="true"
+)
+
+declare -A CONFIG_VALUES
+for key in "${CONFIG_KEYS[@]}"; do
+  CONFIG_VALUES["$key"]="$(read_config_value "$key" "${CONFIG_PROMPTS[$key]}" "${CONFIG_DEFAULTS[$key]}" "${CONFIG_REQUIRED[$key]}")"
+done
+
+{
+  echo "# Generated by deploy-linux.sh"
+  echo "# Re-run the script to update values"
+  for key in "${CONFIG_KEYS[@]}"; do
+    printf 'export %s=%q\n' "$key" "${CONFIG_VALUES[$key]}"
+  done
+} > "$ENV_FILE"
+
+echo
+echo "Saved environment file: $ENV_FILE"
+
+if [[ "$PREPARE_ONLY" == "true" ]]; then
+  echo "Prepare-only mode enabled. No build or start performed."
+  exit 0
+fi
+
+if [[ -f "$PID_FILE" ]]; then
+  OLD_PID="$(tr -d '[:space:]' < "$PID_FILE")"
+  if [[ -n "$OLD_PID" ]] && kill -0 "$OLD_PID" 2>/dev/null; then
+    echo "Stopping old process PID=$OLD_PID"
+    kill "$OLD_PID"
+    sleep 1
+  fi
+fi
+
+set -a
+source "$ENV_FILE"
+set +a
+
+echo "Building project..."
+mvn -s .mvn/settings.xml clean package
+
+JAR_FILE="$(find "$PROJECT_ROOT/target" -maxdepth 1 -type f -name '*.jar' ! -name '*.original' | head -n 1)"
+if [[ -z "$JAR_FILE" ]]; then
+  echo "No runnable jar found under target/."
+  exit 1
+fi
+
+OUT_LOG="$LOG_DIR/chatbot.out.log"
+ERR_LOG="$LOG_DIR/chatbot.err.log"
+
+echo "Starting application from $JAR_FILE"
+nohup java -jar "$JAR_FILE" >"$OUT_LOG" 2>"$ERR_LOG" &
+NEW_PID=$!
+echo "$NEW_PID" > "$PID_FILE"
+
+echo
+echo "Deployment completed."
+echo "PID: $NEW_PID"
+echo "Out log: $OUT_LOG"
+echo "Err log: $ERR_LOG"
+echo "Env file: $ENV_FILE"

@@ -1,0 +1,14 @@
+{
+  "post_type": "message",
+  "message_type": "private",
+  "user_id": 123456789,
+  "raw_message": "[CQ:image,file=test.jpg]",
+  "message": [
+    {
+      "type": "image",
+      "data": {
+        "file": "test.jpg"
+      }
+    }
+  ]
+}

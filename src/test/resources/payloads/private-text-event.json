@@ -1,0 +1,15 @@
+{
+  "post_type": "message",
+  "message_type": "private",
+  "message_id": 10001,
+  "user_id": 123456789,
+  "raw_message": "你好",
+  "message": [
+    {
+      "type": "text",
+      "data": {
+        "text": "你好"
+      }
+    }
+  ]
+}

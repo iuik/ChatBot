@@ -1,0 +1,69 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:chatbot;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      username:
+
+bot:
+  owner-qq: 123456789
+  timezone: Asia/Shanghai
+  onebot:
+    api-base-url: http://127.0.0.1:3000
+  chat:
+    timeout-seconds: 20
+    max-reply-tokens: 500
+    max-context-messages: 20
+    queue:
+      debounce-millis: 1200
+      processing-lock-seconds: 120
+      max-batch-size: 8
+      max-merged-message-chars: 4000
+  memory:
+    auto-extract-enabled: false
+  proactive:
+    enabled: true
+    scan-interval-millis: 30000
+    quiet-hours-start: 23:30
+    quiet-hours-end: 08:30
+    max-per-day: 3
+    timezone: Asia/Shanghai
+    defer-minutes-when-quiet: 30
+  reminder:
+    natural-language-enabled: true
+    ai-intent-enabled: true
+    ai-reply-enabled: true
+    max-candidates: 5
+  chatpush:
+    enabled: false
+    scan-interval-millis: 600000
+    min-idle-hours: 6
+    cooldown-hours: 6
+    max-per-day: 2
+    quiet-hours-start: 23:30
+    quiet-hours-end: 08:30
+    timezone: Asia/Shanghai
+    max-message-length: 120
+    use-ai-generator: true
+    min-allowed-idle-minutes: 10
+    min-allowed-cooldown-minutes: 10
+    max-allowed-per-day: 10
+  prompt:
+    profile-source-priority: file-first
+    reload-file-each-request: false
+    max-profile-chars: 8000
+    include-time-context: true
+
+deepseek:
+  api-key: test-key
+
+embedding:
+  enabled: false
+
+qdrant:
+  enabled: false

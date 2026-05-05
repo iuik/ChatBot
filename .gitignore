@@ -1,0 +1,20 @@
+/target/
+.m2/
+.deploy/
+/.idea/
+/.vscode/
+*.iml
+*.log
+.DS_Store
+
+# Local environment files
+.env
+.env.*
+application-local.yml
+prompts/persona.local.md
+prompts/private/
+
+# Maven wrapper output
+.mvn/wrapper/maven-wrapper.jar
+AGENTS.md
+startUp.ps1
