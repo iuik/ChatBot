@@ -25,6 +25,7 @@ bot:
   onebot:
     api-base-url: ${ONEBOT_API_BASE_URL:http://127.0.0.1:3000}
     access-token: ${ONEBOT_ACCESS_TOKEN:}
+    callback-token: ${ONEBOT_CALLBACK_TOKEN:}
   chat:
     timeout-seconds: ${BOT_CHAT_TIMEOUT_SECONDS:20}
     max-reply-tokens: ${BOT_CHAT_MAX_REPLY_TOKENS:500}

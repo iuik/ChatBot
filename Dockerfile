@@ -15,7 +15,7 @@ WORKDIR /app
 
 ENV TZ=Asia/Shanghai
 
-COPY --from=build /build/target/chatbot-0.0.1-SNAPSHOT.jar /app/chatbot.jar
+COPY --from=build /build/target/*.jar /app/chatbot.jar
 COPY --from=build /build/prompts /app/prompts
 
 EXPOSE 8090

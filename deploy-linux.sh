@@ -50,6 +50,7 @@ CONFIG_KEYS=(
   OWNER_QQ
   ONEBOT_API_BASE_URL
   ONEBOT_ACCESS_TOKEN
+  ONEBOT_CALLBACK_TOKEN
   DEEPSEEK_API_KEY
   DEEPSEEK_BASE_URL
   DEEPSEEK_MODEL
@@ -127,6 +128,7 @@ declare -A CONFIG_DEFAULTS=(
   [OWNER_QQ]=""
   [ONEBOT_API_BASE_URL]="http://127.0.0.1:3000"
   [ONEBOT_ACCESS_TOKEN]=""
+  [ONEBOT_CALLBACK_TOKEN]=""
   [DEEPSEEK_API_KEY]=""
   [DEEPSEEK_BASE_URL]="https://api.deepseek.com"
   [DEEPSEEK_MODEL]="deepseek-chat"
@@ -204,6 +206,7 @@ declare -A CONFIG_PROMPTS=(
   [OWNER_QQ]="Owner QQ"
   [ONEBOT_API_BASE_URL]="OneBot API base URL"
   [ONEBOT_ACCESS_TOKEN]="OneBot access token"
+  [ONEBOT_CALLBACK_TOKEN]="OneBot callback token"
   [DEEPSEEK_API_KEY]="DeepSeek API key"
   [DEEPSEEK_BASE_URL]="DeepSeek base URL"
   [DEEPSEEK_MODEL]="DeepSeek model"
@@ -281,6 +284,7 @@ declare -A CONFIG_REQUIRED=(
   [OWNER_QQ]="true"
   [ONEBOT_API_BASE_URL]="true"
   [ONEBOT_ACCESS_TOKEN]="false"
+  [ONEBOT_CALLBACK_TOKEN]="false"
   [DEEPSEEK_API_KEY]="true"
   [DEEPSEEK_BASE_URL]="true"
   [DEEPSEEK_MODEL]="true"

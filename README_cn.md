@@ -103,6 +103,7 @@ java -jar target/chatbot-0.0.1-SNAPSHOT.jar
 通常建议视为必填：
 - `OWNER_QQ`
 - `ONEBOT_API_BASE_URL`
+- 如果要校验入站 OneBot webhook，则配置 `ONEBOT_CALLBACK_TOKEN`
 - `DEEPSEEK_API_KEY`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -114,6 +115,7 @@ java -jar target/chatbot-0.0.1-SNAPSHOT.jar
 
 - `SERVER_PORT`
 - `ONEBOT_ACCESS_TOKEN`
+- `ONEBOT_CALLBACK_TOKEN`
 - `DEEPSEEK_BASE_URL`
 - `DEEPSEEK_MODEL`
 - `BOT_TIMEZONE`
@@ -202,6 +204,7 @@ cp docker/chatbot.env.example docker/chatbot.env
 然后至少修改：
 - `OWNER_QQ`
 - `ONEBOT_API_BASE_URL`
+- 如果要校验入站 webhook，则配置 `ONEBOT_CALLBACK_TOKEN`
 - `DEEPSEEK_API_KEY`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -303,6 +306,12 @@ docker compose down
 - `ONEBOT_API_BASE_URL` 是否可访问
 - `ONEBOT_ACCESS_TOKEN` 是否匹配
 - 配置的聊天模型接口和 API Key 是否有效
+
+### 12.2 OneBot 回调被 401 拒绝
+
+检查：
+- `ONEBOT_CALLBACK_TOKEN` 是否与 OneBot 反向 HTTP 回调发送的 token 一致
+- 回调请求是否使用 `Authorization: Bearer <token>`，或直接在 `Authorization` 请求头里发送原始 token
 
 ### 12.3 启动时报数据库或 Redis 错误
 

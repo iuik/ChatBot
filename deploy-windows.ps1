@@ -58,6 +58,7 @@ $configItems = @(
     @{ Name = "OWNER_QQ"; Prompt = "Owner QQ"; Default = ""; Required = $true },
     @{ Name = "ONEBOT_API_BASE_URL"; Prompt = "OneBot API base URL"; Default = "http://127.0.0.1:3000"; Required = $true },
     @{ Name = "ONEBOT_ACCESS_TOKEN"; Prompt = "OneBot access token"; Default = ""; Required = $false },
+    @{ Name = "ONEBOT_CALLBACK_TOKEN"; Prompt = "OneBot callback token"; Default = ""; Required = $false },
     @{ Name = "DEEPSEEK_API_KEY"; Prompt = "DeepSeek API key"; Default = ""; Required = $true },
     @{ Name = "DEEPSEEK_BASE_URL"; Prompt = "DeepSeek base URL"; Default = "https://api.deepseek.com"; Required = $true },
     @{ Name = "DEEPSEEK_MODEL"; Prompt = "DeepSeek model"; Default = "deepseek-chat"; Required = $true },

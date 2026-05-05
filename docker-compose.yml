@@ -4,11 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     image: chatbot:latest
+    networks:
+      - academy-network
     container_name: chatbot
     restart: unless-stopped
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
     env_file:
       - ./docker/chatbot.env
     volumes:
       - ./prompts:/app/prompts:ro
+  networks:
+  academy-network:
+    external: true

@@ -103,6 +103,7 @@ The project is configured through environment variables. Do not hard-code secret
 These should usually be treated as required:
 - `OWNER_QQ`
 - `ONEBOT_API_BASE_URL`
+- `ONEBOT_CALLBACK_TOKEN` if you want inbound OneBot webhook validation
 - `DEEPSEEK_API_KEY`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -114,6 +115,7 @@ These should usually be treated as required:
 
 - `SERVER_PORT`
 - `ONEBOT_ACCESS_TOKEN`
+- `ONEBOT_CALLBACK_TOKEN`
 - `DEEPSEEK_BASE_URL`
 - `DEEPSEEK_MODEL`
 - `BOT_TIMEZONE`
@@ -202,6 +204,7 @@ cp docker/chatbot.env.example docker/chatbot.env
 Then edit:
 - `OWNER_QQ`
 - `ONEBOT_API_BASE_URL`
+- `ONEBOT_CALLBACK_TOKEN` if you want inbound webhook validation
 - `DEEPSEEK_API_KEY`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
@@ -303,6 +306,12 @@ Check:
 - `ONEBOT_API_BASE_URL` is reachable
 - `ONEBOT_ACCESS_TOKEN` matches
 - The configured chat model endpoint and API key are valid
+
+### 12.2 OneBot callback is rejected with 401
+
+Check:
+- `ONEBOT_CALLBACK_TOKEN` matches the token sent by your OneBot reverse HTTP callback
+- The callback request uses `Authorization: Bearer <token>` or sends the raw token in the `Authorization` header
 
 ### 12.3 Startup fails with database or Redis errors
 

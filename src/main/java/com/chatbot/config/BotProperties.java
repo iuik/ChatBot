@@ -116,6 +116,8 @@ public class BotProperties {
 
         private String accessToken;
 
+        private String callbackToken;
+
         public String getApiBaseUrl() {
             return apiBaseUrl;
         }
@@ -130,6 +132,14 @@ public class BotProperties {
 
         public void setAccessToken(String accessToken) {
             this.accessToken = accessToken;
+        }
+
+        public String getCallbackToken() {
+            return callbackToken;
+        }
+
+        public void setCallbackToken(String callbackToken) {
+            this.callbackToken = callbackToken;
         }
     }
 
